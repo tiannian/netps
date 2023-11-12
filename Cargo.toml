@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+
+members = ["netps-core", "netps-socks5", "netps-taptun", "netps-trojan", "netps-wireguard"]
+
+[workspace.dependencies]
+netps-core = { path = "./netps-core", version = "0.1" }
+
+async-trait = "0.1.74"
