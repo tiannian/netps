@@ -7,3 +7,5 @@ members = ["netps-core", "netps-socks5", "netps-taptun", "netps-trojan", "netps-
 netps-core = { path = "./netps-core", version = "0.1" }
 
 async-trait = "0.1.74"
+tokio = "1.34.0"
+
