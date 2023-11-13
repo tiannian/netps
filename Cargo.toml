@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["netps-core", "netps-socks5", "netps-taptun", "netps-trojan", "netps-wireguard"]
+members = ["netps-core", "netps-dns", "netps-iamp", "netps-smtp", "netps-socks5", "netps-taptun", "netps-trojan", "netps-wireguard"]
 
 [workspace.dependencies]
 netps-core = { path = "./netps-core", version = "0.1" }
