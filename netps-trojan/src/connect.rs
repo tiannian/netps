@@ -1,26 +1,20 @@
 use netps_core::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
-use crate::{consts, Endpoint, Password, Result, TrojanStream};
+use crate::{consts, Endpoint, Password, Result};
 
-pub async fn connect<S>(
-    stream: S,
-    endpoint: &Endpoint,
-    passhash: &Password,
-) -> Result<TrojanStream<S>>
+pub async fn connect<S>(stream: &mut S, endpoint: &Endpoint, passhash: &Password) -> Result<()>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    let mut stream = stream;
-
     stream.write_all(&passhash.0).await?;
     stream.write_u16(consts::CRLF).await?;
     stream.write_u8(consts::CMD_CONNECT).await?;
 
-    endpoint.write(&mut stream).await?;
+    endpoint.write(stream).await?;
 
     stream.write_u16(consts::CRLF).await?;
 
-    Ok(TrojanStream::Connect(stream))
+    Ok(())
 }
 
 #[cfg(test)]

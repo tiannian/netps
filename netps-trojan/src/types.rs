@@ -75,8 +75,16 @@ impl Endpoint {
     }
 }
 
-#[derive(Debug)]
-pub struct Password(pub(crate) [u8; 56]);
+#[derive(Debug, PartialEq, Eq)]
+pub struct Password(pub [u8; 56]);
+
+impl Password {
+    pub fn check(&self, pass: &str) -> bool {
+        let r = Password::from(pass);
+
+        &r == self
+    }
+}
 
 impl From<&str> for Password {
     fn from(value: &str) -> Self {

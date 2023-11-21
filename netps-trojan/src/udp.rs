@@ -1,28 +1,19 @@
-use netps_core::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, Take};
+use netps_core::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::{consts, Endpoint, Error, Password, Result};
 
-pub struct TrojanUdpSocket<S> {
-    stream: S,
-    password: Password,
+pub struct TrojanUdpSocket<'a, S> {
+    pub(crate) stream: &'a mut S,
 }
 
-impl<S> TrojanUdpSocket<S> {
-    pub fn new(stream: S, password: &str) -> Self {
-        let password = Password::from(password);
-
-        Self { stream, password }
-    }
-}
-
-impl<S> TrojanUdpSocket<S>
+impl<'a, S> TrojanUdpSocket<'a, S>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    pub async fn handshake(&mut self) -> Result<()> {
-        let stream = &mut self.stream;
+    pub async fn connect(stream: &'a mut S, password: &str) -> Result<TrojanUdpSocket<'a, S>> {
+        let password = Password::from(password);
 
-        stream.write_all(&self.password.0).await?;
+        stream.write_all(&password.0).await?;
         stream.write_u16(consts::CRLF).await?;
         stream.write_u8(consts::CMD_UDP).await?;
 
@@ -33,10 +24,15 @@ where
         stream.write_u16(consts::CRLF).await?;
         stream.flush().await?;
 
-        Ok(())
+        Ok(Self { stream })
     }
+}
 
-    pub async fn send_to(&mut self, endpoint: &Endpoint, payload: &[u8]) -> Result<()>
+impl<S> TrojanUdpSocket<'_, S>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    pub async fn send_to(&mut self, payload: &[u8], endpoint: &Endpoint) -> Result<()>
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
@@ -55,7 +51,7 @@ where
         Ok(())
     }
 
-    pub async fn recv_from(&mut self) -> Result<(Take<&'_ mut S>, Endpoint)> {
+    pub async fn recv_from(&mut self, buf: &mut [u8]) -> Result<(usize, Endpoint)> {
         let stream = &mut self.stream;
 
         let endpoint = Endpoint::read(stream).await?;
@@ -67,7 +63,17 @@ where
             return Err(Error::WrongFormat);
         }
 
-        Ok((stream.take(length.into()), endpoint))
+        let n = if buf.len() < length as usize {
+            buf.len()
+        } else {
+            length as usize
+        };
+
+        let buf = &mut buf[..n];
+
+        let n = stream.read_exact(buf).await?;
+
+        Ok((n, endpoint))
     }
 }
 
